@@ -26,7 +26,7 @@ Este repositório contém a entrega completa do teste técnico para a vaga de An
 📄 Caderno de Testes - Lucas QA PGE.docx
 ```
 
-## ✅ Itens Entregues
+## Itens Entregues
 
 1. Plano de testes
 - Documento completo com estratégia, escopo, cronograma, riscos e ferramentas.
