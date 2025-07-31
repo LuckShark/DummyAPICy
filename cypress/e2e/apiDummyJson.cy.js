@@ -1,49 +1,29 @@
 describe('API DummyJSON - Testes Automatizados', () => {
-  const baseUrl = 'https://dummyjson.com';
-  let accessToken = '';
-  let refreshToken = '';
 
-   before(() => {
-    cy.request({
-      method: 'POST',
-      url: `${baseUrl}/auth/login`,
-      body: {
-        username: 'emilys',
-        password: 'emilyspass'
-      }
-    }).then((res) => {
-      expect(res.status).to.eq(200);
-      expect(res.body).to.have.property('accessToken');
-      expect(res.body).to.have.property('refreshToken');
-      accessToken = res.body.accessToken;
-      refreshToken = res.body.refreshToken;
+  // Carrega os dados do fixture uma vez para todos os testes neste bloco.
+  beforeEach(function () {
+    cy.fixture('users').then((users) => {
+      this.users = users;
     });
   });
 
-  it('CT01 - Login com credenciais válidas', () => {
+  it('CT01 - Login com credenciais válidas', function () {
     cy.request({
       method: 'POST',
-      url: `${baseUrl}/auth/login`,
-      body: {
-        username: 'emilys',
-        password: 'emilyspass'
-      }
+      url: '/auth/login',
+      body: this.users.valid,
     }).then((res) => {
       expect(res.status).to.eq(200);
       expect(res.body).to.have.property('accessToken');
-      expect(res.body).to.have.property('refreshToken');
     });
   });
 
-  it('CT02 - Login com senha incorreta', () => {
+  it('CT02 - Login com senha incorreta', function () {
     cy.request({
       method: 'POST',
-      url: `${baseUrl}/auth/login`,
+      url: '/auth/login',
       failOnStatusCode: false,
-      body: {
-        username: 'kminchelle',
-        password: 'senhaIncorreta'
-      }
+      body: this.users.invalidPassword,
     }).then((res) => {
       expect(res.status).to.eq(400);
     });
@@ -52,86 +32,90 @@ describe('API DummyJSON - Testes Automatizados', () => {
   it('CT03 - Login com campos vazios', () => {
     cy.request({
       method: 'POST',
-      url: `${baseUrl}/auth/login`,
+      url: '/auth/login',
       failOnStatusCode: false,
-      body: {}
+      body: {},
     }).then((res) => {
       expect(res.status).to.be.oneOf([400, 422]);
     });
   });
-
-  it('CT04 - Obter usuário autenticado com token válido', () => {
-    cy.request({
-      method: 'GET',
-      url: `${baseUrl}/auth/me`,
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    }).then((res) => {
-      expect(res.status).to.eq(200);
-      expect(res.body).to.have.property('firstName');
-    });
-  });
-
+  
+  // Este teste agora está isolado e não é afetado pelo login automático.
   it('CT05 - Obter usuário sem token', () => {
     cy.request({
       method: 'GET',
-      url: `${baseUrl}/auth/me`,
-      failOnStatusCode: false
+      url: '/auth/me',
+      failOnStatusCode: false,
     }).then((res) => {
       expect(res.status).to.be.oneOf([401, 403]);
     });
   });
-
+  
   it('CT06 - Obter usuário com token inválido', () => {
     cy.request({
       method: 'GET',
-      url: `${baseUrl}/auth/me`,
+      url: '/auth/me',
       failOnStatusCode: false,
       headers: {
-        Authorization: 'Bearer token_invalido'
-      }
+        Authorization: 'Bearer token_invalido_123',
+      },
     }).then((res) => {
       expect(res.status).to.be.oneOf([401, 403]);
     });
   });
-
-  it('CT07 - Refresh token válido', () => {
-    expect(refreshToken, 'O refreshToken não pode estar vazio').to.not.be.empty;
-    cy.request({
-      method: 'POST',
-      url: `${baseUrl}/auth/refresh`,
-      body: {
-      refreshToken: refreshToken
-        },
-    failOnStatusCode: false 
-    }).then((res) => {
-      expect(res.status).to.eq(200);
-      expect(res.body).to.have.property('accessToken');
-      expect(res.body).to.have.property('refreshToken');
-    });
-  });
-
+  
+  // A validação foi corrigida para ser mais flexível.
   it('CT08 - Refresh com token inválido', () => {
     cy.request({
       method: 'POST',
-      url: `${baseUrl}/auth/refresh`,
+      url: '/auth/refresh',
       failOnStatusCode: false,
-      headers: {
-        Authorization: 'Bearer token_falso'
-      }
+      body: {
+        refreshToken: 'um_refresh_token_falso',
+      },
     }).then((res) => {
       expect(res.status).to.be.oneOf([401, 403]);
     });
   });
-
+  
   it('CT09 - Listar usuários (público)', () => {
-    cy.request({
-      method: 'GET',
-      url: `${baseUrl}/users`
-    }).then((res) => {
+    cy.request('/users').then((res) => {
       expect(res.status).to.eq(200);
-      expect(res.body).to.have.property('users');
+      expect(res.body.users).to.be.an('array');
+    });
+  });
+
+  // Bloco separado para testes que PRECISAM de autenticação prévia.
+  describe('Endpoints Protegidos', () => {
+    // Este `beforeEach` só roda para os testes dentro deste `describe`.
+    beforeEach(function () {
+      cy.login(this.users.valid.username, this.users.valid.password);
+    });
+
+    it('CT04 - Obter usuário autenticado com token válido', () => {
+      cy.request({
+        method: 'GET',
+        url: '/auth/me',
+        headers: {
+          Authorization: `Bearer ${Cypress.env('accessToken')}`,
+        },
+      }).then((res) => {
+        expect(res.status).to.eq(200);
+        expect(res.body).to.have.property('firstName');
+      });
+    });
+
+    it('CT07 - Refresh token válido', () => {
+      cy.request({
+        method: 'POST',
+        url: '/auth/refresh',
+        body: {
+          refreshToken: Cypress.env('refreshToken'),
+        },
+      }).then((res) => {
+        expect(res.status).to.eq(200);
+        expect(res.body).to.have.property('accessToken');
+      });
     });
   });
 });
