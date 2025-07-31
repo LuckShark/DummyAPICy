@@ -1,6 +1,6 @@
 describe('API DummyJSON - Testes Automatizados', () => {
 
-  // Carrega os dados do fixture uma vez para todos os testes neste bloco.
+
   beforeEach(function () {
     cy.fixture('users').then((users) => {
       this.users = users;
@@ -40,7 +40,6 @@ describe('API DummyJSON - Testes Automatizados', () => {
     });
   });
   
-  // Este teste agora está isolado e não é afetado pelo login automático.
   it('CT05 - Obter usuário sem token', () => {
     cy.request({
       method: 'GET',
@@ -64,7 +63,6 @@ describe('API DummyJSON - Testes Automatizados', () => {
     });
   });
   
-  // A validação foi corrigida para ser mais flexível.
   it('CT08 - Refresh com token inválido', () => {
     cy.request({
       method: 'POST',
@@ -85,9 +83,8 @@ describe('API DummyJSON - Testes Automatizados', () => {
     });
   });
 
-  // Bloco separado para testes que PRECISAM de autenticação prévia.
+
   describe('Endpoints Protegidos', () => {
-    // Este `beforeEach` só roda para os testes dentro deste `describe`.
     beforeEach(function () {
       cy.login(this.users.valid.username, this.users.valid.password);
     });
