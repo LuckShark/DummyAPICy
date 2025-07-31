@@ -24,3 +24,19 @@ jobs:
 
       - name: Rodar testes Cypress
         run: npx cypress run
+
+      - name: Notificar sucesso no Discord
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d '{"content": "✅ Pipeline *SUCESSO* no projeto QA PGE! Testes Cypress passaram com sucesso."}' \
+              ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Notificar falha no Discord
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+              -X POST \
+              -d '{"content": "❌ Pipeline *FALHOU* no projeto QA PGE. Verifique os testes Cypress no GitHub Actions."}' \
+              ${{ secrets.DISCORD_WEBHOOK }}
